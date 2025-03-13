@@ -16,12 +16,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from django.contrib.auth import views as auth_views
-from django.views.generic import RedirectView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('users/', include('users.urls')),  # Подключаем URL-адреса из приложения users
-    # Перенаправление с главной страницы на страницу регистрации
-    path('', RedirectView.as_view(url='/users/register/', permanent=False)),
+    path('api/', include('courses.urls')),
 ]

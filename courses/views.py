@@ -2,13 +2,18 @@ from django.shortcuts import render
 from django.shortcuts import render, redirect
 from django.core.mail import send_mail
 from django.utils.timezone import now
-from .forms import RegistrationForm
-from .models import User
 from django.core.paginator import Paginator
 from django.conf import settings
 from django.utils.crypto import get_random_string
 import logging
 from django.contrib import messages
+from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from .models import Course
+from .serializers import CourseSerializer
+from rest_framework.permissions import IsAuthenticated
+from users.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -86,3 +91,34 @@ def user_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     return render(request, 'users/user_list.html', {'page_obj': page_obj})
+
+class CourseViewSet(viewsets.ModelViewSet):
+    queryset = Course.objects.all()
+    serializer_class = CourseSerializer
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=True, methods=['post'])
+    def add_student(self, request, pk=None):
+        course = self.get_object()
+        student_id = request.data.get('student_id')
+        
+        try:
+            student = User.objects.get(id=student_id, role='student')
+            if course.students.count() >= course.max_students:
+                return Response({'error': 'Course is full'}, status=400)
+            course.students.add(student)
+            return Response({'status': 'student enrolled'})
+        except User.DoesNotExist:
+            return Response({'error': 'student not found'}, status=404)
+
+    @action(detail=True, methods=['post'])
+    def remove_student(self, request, pk=None):
+        course = self.get_object()
+        student_id = request.data.get('student_id')
+        
+        try:
+            student = User.objects.get(id=student_id, role='student')
+            course.students.remove(student)
+            return Response({'status': 'student removed'})
+        except User.DoesNotExist:
+            return Response({'error': 'student not found'}, status=404)
