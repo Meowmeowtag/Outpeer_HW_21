@@ -2,13 +2,21 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 class User(AbstractUser):
-    ROLES = (
-        ('student', 'Студент'),
-        ('teacher', 'Преподаватель'),
-        ('manager', 'Менеджер'),
-    )
+    MANAGER = 'manager'
+    TEACHER = 'teacher'
+    STUDENT = 'student'
     
-    role = models.CharField(max_length=10, choices=ROLES, default='student')
+    ROLE_CHOICES = [
+        (MANAGER, 'Менеджер'),
+        (TEACHER, 'Учитель'),
+        (STUDENT, 'Студент'),
+    ]
+    
+    role = models.CharField(
+        max_length=10,
+        choices=ROLE_CHOICES,
+        default=STUDENT,
+    )
     email = models.EmailField(unique=True)
     confirmation_code = models.CharField(max_length=100, null=True, blank=True)
     code_expires_at = models.DateTimeField(null=True, blank=True)

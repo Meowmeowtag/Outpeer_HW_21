@@ -16,12 +16,14 @@ class RegistrationForm(UserCreationForm):
     )
     role = forms.ChoiceField(
         label='Роль',
-        choices=User.ROLE_CHOICES
+        choices=User.ROLE_CHOICES,
+        initial=User.STUDENT,
+        widget=forms.Select(attrs={'class': 'form-control'})
     )
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'role', 'password1', 'password2')
+        fields = ('username', 'email', 'password1', 'password2', 'role')
 
     def clean_email(self):
         email = self.cleaned_data.get('email')

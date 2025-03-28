@@ -1,5 +1,4 @@
-from django.shortcuts import render
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.core.mail import send_mail
 from django.utils.timezone import now
 from django.core.paginator import Paginator
@@ -7,13 +6,16 @@ from django.conf import settings
 from django.utils.crypto import get_random_string
 import logging
 from django.contrib import messages
-from rest_framework import viewsets
+from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Course
 from .serializers import CourseSerializer
 from rest_framework.permissions import IsAuthenticated
 from users.models import User
+from lessons.permissions import IsManagerUser
+from .forms import RegistrationForm, CourseForm
+from courses.permissions import IsManagerOrReadOnly
 
 logger = logging.getLogger(__name__)
 
@@ -21,29 +23,14 @@ logger = logging.getLogger(__name__)
 def register(request):
     if request.method == "POST":
         form = RegistrationForm(request.POST)
-        logger.info("Processing registration form")
-        
         if form.is_valid():
-            logger.info("Form is valid")
             try:
                 user = form.save(commit=False)
-                user.is_active = False
-                user.confirmation_code = get_random_string(length=6)
+                user.set_password(form.cleaned_data['password'])
                 user.save()
-                logger.info(f"User created: {user.email}")
-
-                logger.info(f"Attempting to send email to {user.email}")
-                send_mail(
-                    'Подтверждение регистрации',
-                    f'Ваш код подтверждения: {user.confirmation_code}',
-                    settings.DEFAULT_FROM_EMAIL,
-                    [user.email],
-                    fail_silently=False,
-                )
-                logger.info(f"Email sent successfully to {user.email}")
-                return redirect('confirm_email')
+                messages.success(request, 'Регистрация успешна! Теперь вы можете войти.')
+                return redirect('login')
             except Exception as e:
-                logger.error(f"Error during registration: {str(e)}")
                 user.delete()
                 messages.error(request, f'Ошибка при регистрации: {str(e)}')
         else:
@@ -95,7 +82,14 @@ def user_list(request):
 class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsManagerOrReadOnly]
+    
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            permission_classes = [IsManagerUser]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
     @action(detail=True, methods=['post'])
     def add_student(self, request, pk=None):
@@ -122,3 +116,27 @@ class CourseViewSet(viewsets.ModelViewSet):
             return Response({'status': 'student removed'})
         except User.DoesNotExist:
             return Response({'error': 'student not found'}, status=404)
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
+def create_course(request):
+    if request.method == 'POST':
+        form = CourseForm(request.POST, request.FILES)
+        if form.is_valid():
+            course = form.save(commit=False)
+            course.author = request.user
+            course.save()
+            messages.success(request, 'Курс успешно создан!')
+            return redirect('course_detail', pk=course.pk)
+    else:
+        form = CourseForm()
+    return render(request, 'courses/course_form.html', {'form': form})
+
+def course_detail(request, pk):
+    course = get_object_or_404(Course, pk=pk)
+    return render(request, 'courses/course_detail.html', {'course': course})
+
+def course_list(request):
+    courses = Course.objects.all()
+    return render(request, 'courses/course_list.html', {'courses': courses})

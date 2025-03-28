@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">Доступные курсы</h1>
+    <div class="row">
+        {% for course in courses %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                {% if course.preview_image %}
+                <img src="{{ course.preview_image.url }}" class="card-img-top" alt="{{ course.title }}">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ course.title }}</h5>
+                    <p class="card-text">{{ course.description|truncatewords:30 }}</p>
+                    <p class="card-text"><strong>Цена: {{ course.price }} руб.</strong></p>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'course_detail' course.pk %}" class="btn btn-primary">Подробнее</a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <p>Пока нет доступных курсов.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %} 

@@ -16,8 +16,21 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.contrib.auth import views as auth_views
+from courses.views import create_course, course_detail, course_list
+from rest_framework.authtoken import views as auth_views_rest
+from users.views import register_user
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/', include('users.urls')),
     path('api/', include('courses.urls')),
+    path('api/', include('lessons.urls')),
+    path('login/', auth_views.LoginView.as_view(template_name='users/login.html'), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    path('courses/create/', create_course, name='create_course'),
+    path('courses/<int:pk>/', course_detail, name='course_detail'),
+    path('courses/', course_list, name='course_list'),
+    path('api/auth/register/', register_user, name='register'),
+    path('api/auth/token/', auth_views_rest.obtain_auth_token, name='token'),
 ]
