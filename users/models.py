@@ -1,5 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils import timezone
+from datetime import timedelta
 
 class User(AbstractUser):
     MANAGER = 'manager'
@@ -23,4 +25,4 @@ class User(AbstractUser):
 
     def generate_confirmation_code(self):
         self.confirmation_code = 'some_generated_code'
-        self.code_expires_at = now() + timedelta(hours=24)
+        self.code_expires_at = timezone.now() + timedelta(hours=24)

@@ -1,5 +1,4 @@
 from django.db import models
-from users.models import User
 from django.utils import timezone
 from datetime import timedelta
 from django.contrib.auth import get_user_model
